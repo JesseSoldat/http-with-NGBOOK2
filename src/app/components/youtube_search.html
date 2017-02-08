@@ -3,10 +3,19 @@
 		<h1>YouTube Search</h1>
 
 	</div>
-
+	
 	<div class="row">
-		<div class="input-group input-group-lg col-md-12"></div>
+		<div class="input-group input-group-lg col-md-12">
+			<search-box
+				(results)="updateResults($event)">		
+			</search-box>
+		</div>
 	</div>
 
-	<div class="row"></div>
+	<div class="row">
+		<search-result
+			*ngFor="let result of results"
+			[result]="result">
+		</search-result>
+	</div>
 </div>

@@ -26,11 +26,31 @@ export class YouTubeService {
 	constructor(private http: Http,
 		@Inject(YOUTUBE_API_KEY) private apiKey: string,
 		@Inject(YOUTUBE_API_URL) private apiUrl: string){
-
 	}
 
-	search() {
+	search(query: string): any {
+		let params: string = [
+			`q=${query}`,
+			`key=${this.apiKey}`,
+			`part=snippet`,
+			`type=video`,
+			`maxResults=10`
+		].join('&');
 
+		let queryUrl: string = `${this.apiUrl}?${params}`;
+
+		return this.http.get(queryUrl)
+			.map( (res: Response) => {
+				return (<any>res.json()).items.map(item => {
+					console.log(item)
+					return new SearchResult({
+						id: item.id.videoId,
+						title: item.snippet.title,
+						description: item.snippet.description,
+						thumbnailUrl: item.snippet.thumbnails.high.url
+					});
+				});
+			});
 	}
 }
 
@@ -42,6 +62,7 @@ export var youTubeServiceInjectables: Array<any> = [
 //-------------------------------------------------------
 @Component({
 	selector: 'search-box',
+	outputs: ['loading', 'results'],
 	template: `
 		<input type="text" class="form-control" placeholder="Search" autofoucs>
 
@@ -49,20 +70,40 @@ export var youTubeServiceInjectables: Array<any> = [
 })
 
 export class SearchBox implements OnInit {
+	loading: EventEmitter<boolean> = new EventEmitter<boolean>();
+	results: EventEmitter<SearchResult[]> = new EventEmitter<SearchResult[]>();
+
+	constructor(private youtube: YouTubeService, private el: ElementRef){
+		
+	}
 	
 	ngOnInit(): void {
+		Observable.fromEvent(this.el.nativeElement, 'keyup')
+			.map( (e: any) => e.target.value)
+			.filter( (text: string) => text.length > 1)
+			.debounceTime(250)
+			.map( (query: string) => this.youtube.search(query))
+			.switch()
+			.subscribe( (results: SearchResult[]) => {
+				// console.log(results);
+				this.results.next(results);
+			}, (err: any) => {
+				console.log(err);
+			}, () => {
 
+			});
 	}
 }
 
 //-------------------------------------------------------
 @Component({
 	selector:'search-result',
-	templateUrl: './search_result.html'
+	templateUrl: './search_result.html',
+	inputs: ['result']
 })
 
 export class SearchResultComponent {
-
+	result: SearchResult;
 }
 
 //-------------------------------------------------------
@@ -72,7 +113,12 @@ export class SearchResultComponent {
 })
 
 export class YouTubeSearchComponent {
+	results: SearchResult[];
 
+	updateResults(results: SearchResult[]): void {
+		this.results = results;
+
+	}
 }
 
 
