@@ -42,7 +42,7 @@ export class YouTubeService {
 		return this.http.get(queryUrl)
 			.map( (res: Response) => {
 				return (<any>res.json()).items.map(item => {
-					console.log(item)
+					// console.log(item)
 					return new SearchResult({
 						id: item.id.videoId,
 						title: item.snippet.title,
@@ -74,7 +74,7 @@ export class SearchBox implements OnInit {
 	results: EventEmitter<SearchResult[]> = new EventEmitter<SearchResult[]>();
 
 	constructor(private youtube: YouTubeService, private el: ElementRef){
-		
+
 	}
 	
 	ngOnInit(): void {
@@ -82,15 +82,22 @@ export class SearchBox implements OnInit {
 			.map( (e: any) => e.target.value)
 			.filter( (text: string) => text.length > 1)
 			.debounceTime(250)
+			.do(() => {
+				this.loading.next(true)
+			}
+				)
 			.map( (query: string) => this.youtube.search(query))
 			.switch()
 			.subscribe( (results: SearchResult[]) => {
-				// console.log(results);
+		
+				this.loading.next(false);
 				this.results.next(results);
+				
 			}, (err: any) => {
 				console.log(err);
+				this.loading.next(false);
 			}, () => {
-
+				this.loading.next(false);
 			});
 	}
 }
@@ -109,15 +116,16 @@ export class SearchResultComponent {
 //-------------------------------------------------------
 @Component({
 	selector: 'youtube-search',
-	templateUrl: './youtube_search.html'
+	templateUrl: './youtube_search.html',
+	
 })
 
 export class YouTubeSearchComponent {
 	results: SearchResult[];
+	loading: boolean;
 
-	updateResults(results: SearchResult[]): void {
+	updateResults(results: SearchResult[]): void {	
 		this.results = results;
-
 	}
 }
 
